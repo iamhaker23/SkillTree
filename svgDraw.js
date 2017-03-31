@@ -71,7 +71,12 @@ function connectElements(svg, path, startElem, endElem) {
 function getElementOffset(elem)
 {
     var de = document.documentElement;
-    var box = elem.getBoundingClientRect();
+    var box = {left: 0, top: 0};
+    try{
+        box = elem.getBoundingClientRect();
+    }catch(e){
+        console.log(e);
+    }
     var marginTop = 0;
     var marginLeft = 0;
     

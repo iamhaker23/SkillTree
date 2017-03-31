@@ -55,6 +55,17 @@
         <script>
             var mySkillTree = null;
             
+            var myWidth = 0;
+            var myHeight = 0;
+            
+            window.onresize = function(){
+                var w = getWindowSize().width;
+                var h = getWindowSize().height;
+                if ((w!=myWidth && h!=myHeight) && mySkillTree != null){
+                    mySkillTree.draw();
+                }
+            }
+            
             window.onload = function(){
                 skilltree = {
                     "Reading":{"dependencies":[], "description":"Ability to read in at least one language."},
@@ -72,14 +83,11 @@
                     "Computer Science":{"dependencies":["Computing", "Programming"], "description":""}
                 };
                 
+                var myWidth = getWindowSize().width;
+                var myHeight = getWindowSize().height;
+                
                 mySkillTree = new SkillTree(skilltree);
                 mySkillTree.draw();
-            }
-            
-            window.onresize = function(){
-                if (mySkillTree != null){
-                    mySkillTree.draw();
-                }
             }
             
         </script>

@@ -1,3 +1,31 @@
+if(!Object.hasOwnProperty("keys")) Object.keys= function(o){
+	if(Object(o) !== o){
+		throw new TypeError('Object.keys called on a non-enumerable');
+	}
+	var k= [], p;
+	for(p in o){ if(o.hasOwnProperty(p)) k[k.length]=p; }
+	return k;
+};
+
+function getWindowSize(){
+    var myHeight = 0;
+    var myWidth = 0;
+    if( typeof( window.innerWidth ) == 'number' ) {
+        //Non-IE
+        myWidth = window.innerWidth;
+        myHeight = window.innerHeight;
+    } else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) {
+        //IE 6+ in 'standards compliant mode'
+        myWidth = document.documentElement.clientWidth;
+        myHeight = document.documentElement.clientHeight;
+    } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+        //IE 4 compatible
+        myWidth = document.body.clientWidth;
+        myHeight = document.body.clientHeight;
+    }
+    return {height: myHeight, width: myWidth};
+}
+
 var SkillTree = function(tree){
         this.tree = tree;
         this.paths = [];
@@ -122,8 +150,8 @@ var SkillTree = function(tree){
             return out;
         }
         
-        this.highlightAllDependencies = function(name, originalCall=true){
-            
+        this.highlightAllDependencies = function(name, originalCall){
+            originalCall = (originalCall == null)?true:originalCall;
             var elem = new TreeElement(this.getTree()[name]);
             var currDeps = elem.getDependencies();
             if (originalCall) {
@@ -141,9 +169,9 @@ var SkillTree = function(tree){
             this.highlightingDependencies = originalCall;
         }
         
-        this.highlight=function(name, latch=false){
+        this.highlight=function(name, latch){
             //use latch for a "show all dependencies" button
-            
+            latch = (latch == null)?false:latch;
             var allPaths = this.getSkillPaths();
             var allTree = this.getTree();
             var svg = document.getElementById("svg1");
@@ -198,6 +226,7 @@ var SkillTree = function(tree){
         this.draw = function(reducedSet, priorDrawn, priorToDrawCount){
             
             document.getElementById("main").innerHTML = "";
+            document.getElementById("svg1").innerHTML = "";
             
             var drawn = [];
             var toDraw = [];

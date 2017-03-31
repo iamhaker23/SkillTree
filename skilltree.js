@@ -1,6 +1,11 @@
 var SkillTree = function(tree){
         this.tree = tree;
         this.paths = [];
+        this.highlightingDependencies = false;
+        this.highlightingDependents = false;
+        this.H_A_D_BUTTON_TEXT = "< Needs";
+        this.H_A_O_BUTTON_TEXT = "Gives >";
+        this.U_H_BUTTON_TEXT = "Unhighlight";
         
         this.getTree=function(){
             return this.tree;
@@ -31,50 +36,162 @@ var SkillTree = function(tree){
             return this.paths;
         }
         
+        this.getChildButtonByClass=function(name, clss){
+            var doc = document.getElementById(name);
+            var out = null;
+            for (var i = 0; i < doc.childNodes.length; i++) {
+                if (doc.childNodes[i].className == clss) {
+                  out = doc.childNodes[i];
+                  break;
+                }        
+            }
+            return out;
+        }
+        
+        this.unhighlightAll = function(btn){
+            this.highlightingDependencies = false;
+            this.highlightingDependents = false;
+            
+            
+            //hack that will reset the colour of all skills
+            this.highlight("");
+        }
+        
+        this.toggleButton = function(btn){
+
+            if (btn.className == "dependencyAggregate"){
+                var otherButtons = document.getElementsByTagName("input");
+                if (btn.getAttribute("value") == this.H_A_D_BUTTON_TEXT){
+                    
+                    for (var idx in otherButtons){
+                        otherButtons[idx].disabled = true;
+                    }
+                    btn.disabled = false;
+                    btn.setAttribute("value", this.U_H_BUTTON_TEXT);
+                    btn.setAttribute("onclick", "mySkillTree.unhighlightAll();mySkillTree.toggleButton(this);");
+                }else{
+                    for (var idx in otherButtons){
+                        otherButtons[idx].disabled = false;
+                    }
+                    btn.setAttribute("value", this.H_A_D_BUTTON_TEXT);
+                    btn.setAttribute("onclick", "mySkillTree.highlightAllDependencies(this.parentNode.id);mySkillTree.toggleButton(this);");
+                }
+            }
+            
+            if(btn.className == "dependentAggregate"){
+                var otherButtons = document.getElementsByTagName("input");
+                
+                if (btn.getAttribute("value") == this.H_A_O_BUTTON_TEXT){
+                    for (var idx in otherButtons){
+                        otherButtons[idx].disabled = true;
+                    }
+                    btn.disabled = false;
+                    btn.setAttribute("value", this.U_H_BUTTON_TEXT);
+                    btn.setAttribute("onclick", "mySkillTree.unhighlightAll();mySkillTree.toggleButton(this);");
+                }else{
+                    for (var idx in otherButtons){
+                        otherButtons[idx].disabled = false;
+                    }
+                    btn.setAttribute("value", this.H_A_O_BUTTON_TEXT);
+                    btn.setAttribute("onclick", "mySkillTree.highlightAllDependents(this.parentNode.id);mySkillTree.toggleButton(this);");
+                }
+            }
+            
+        }
+        
+        this.highlightAllDependents = function(name){
+            this.unhighlightAll();
+            var dependents = this.collectDependents(name);
+            for (var opp in dependents){
+                document.getElementById(dependents[opp]).style.backgroundColor = "purple";
+            }
+            this.highlightingDependencies = true;
+        }
+        
+        this.collectDependents=function(name){
+            var tree = this.getTree();
+            var out = [];
+            
+            for (var idx in tree){
+                var currElemDeps = (new TreeElement(tree[idx])).getDependencies();
+                if (currElemDeps.indexOf(name)!=-1){
+                    out.push(idx);
+                }
+            }
+            
+            return out;
+        }
+        
+        this.highlightAllDependencies = function(name, originalCall=true){
+            
+            var elem = new TreeElement(this.getTree()[name]);
+            var currDeps = elem.getDependencies();
+            if (originalCall) {
+                this.unhighlightAll();
+                this.highlight(name, true);
+            }
+            if (this.getTree()[name] != null){
+                for (var dep in currDeps){
+                    var tmp = currDeps[dep];
+                    this.highlight(tmp, true);
+                    this.highlightAllDependencies(currDeps[dep], false);
+                }
+            }
+            //block mousemove until aggregate highlighting is deselected
+            this.highlightingDependencies = originalCall;
+        }
+        
         this.highlight=function(name, latch=false){
             //use latch for a "show all dependencies" button
             
             var allPaths = this.getSkillPaths();
             var allTree = this.getTree();
             var svg = document.getElementById("svg1");
-            
-            for (var idx in allTree){
-                
-                var currElement = new TreeElement(allTree[idx]);
-                
-                var dependencies = currElement.getDependencies();
-                dependencies = (dependencies==null)?[]:dependencies;
-                
-                var bg = "steelblue";
-                var path = "black";
-                var depbg = "orange";
-                
-                if (idx == name){
-                    bg = "limegreen";
-                    path = "orange";
+            if (!this.isAggregateHighlighting()){
+                for (var idx in allTree){
                     
-                    for (var dep in dependencies){
-                        document.getElementById(dependencies[dep]).style.backgroundColor = depbg;
+                    var currElement = new TreeElement(allTree[idx]);
+                    
+                    var dependencies = currElement.getDependencies();
+                    dependencies = (dependencies==null)?[]:dependencies;
+                    
+                    var bg = "steelblue";
+                    var path = "black";
+                    var depbg = "orange";
+                    
+                    if (idx == name){
+                        bg = "limegreen";
+                        path = "orange";
+                        
+                        for (var dep in dependencies){
+                            document.getElementById(dependencies[dep]).style.backgroundColor = depbg;
+                        }
                     }
                     
-                }
-                
-                
-                
-                for (var pathIdx in allPaths[idx]){
-                    var currPath = document.getElementById(allPaths[idx][pathIdx]);
-                    if (currPath != null){
-                        currPath.setAttributeNS(null, "stroke", path); 
-                        currPath = svg.removeChild(currPath);
-                        svg.insertBefore(currPath, svg.childNodes[0]);
+                    
+                    
+                    for (var pathIdx in allPaths[idx]){
+                        var currPath = document.getElementById(allPaths[idx][pathIdx]);
+                        if (currPath != null){
+                            if (latch == false || currPath.getAttributeNS(null, "stroke") == "black"){
+                                currPath.setAttributeNS(null, "stroke", path); 
+                            }
+                            currPath = svg.removeChild(currPath);
+                            svg.insertBefore(currPath, svg.childNodes[0]);
+                        }
                     }
-                }
-                //Prevent unselected state from overriding dependency state colouring.
-                if (dependencies.indexOf(idx) == -1){
-                    //colour if unselected AND not a dependency
-                    if (latch == false) document.getElementById(idx).style.backgroundColor = bg;
+                    //Prevent unselected state from overriding dependency state colouring.
+                    if (dependencies.indexOf(idx) == -1){
+                        //colour if unselected AND not a dependency
+                        
+                            if (latch == false) document.getElementById(idx).style.backgroundColor = bg;
+                    }
                 }
             }
+        }
+        
+        this.isAggregateHighlighting = function(){
+            return this.highlightingDependencies || this.highlightingDependents;
         }
         
         
@@ -159,8 +276,25 @@ var SkillTree = function(tree){
             var description = document.createElement("p");
             description.innerHTML = desc;
             
+            var toggleViewAllDependencies = document.createElement("input");
+            var toggleViewDependents = document.createElement("input");
+            
+            toggleViewAllDependencies.setAttribute("type", "button");
+            toggleViewDependents.setAttribute("type", "button");
+            
+            toggleViewAllDependencies.className = "dependencyAggregate";
+            toggleViewDependents.className = "dependentAggregate";
+            
+            toggleViewAllDependencies.setAttribute("value", this.H_A_D_BUTTON_TEXT);
+            toggleViewDependents.setAttribute("value",  this.H_A_O_BUTTON_TEXT);
+            
+            toggleViewAllDependencies.setAttribute("onclick", "mySkillTree.highlightAllDependencies(this.parentNode.id);mySkillTree.toggleButton(this);");
+            toggleViewDependents.setAttribute("onclick", "mySkillTree.highlightAllDependents(this.parentNode.id);mySkillTree.toggleButton(this);");
+            
             elem.appendChild(title);
             elem.appendChild(description);
+            elem.appendChild(toggleViewAllDependencies);
+            elem.appendChild(toggleViewDependents);
             
             content.appendChild(elem);
         }
@@ -168,7 +302,7 @@ var SkillTree = function(tree){
         this.drawLinks=function(dep, name, idx){
             //function from svgDraw
             var pathId = name+"Path"+idx;
-            var path = createPath(pathId, "0.3em");
+            var path = createPath(pathId, "0.1em");
             var svg = document.getElementById("svg1");
             
             this.addPathToSkill(name, pathId);

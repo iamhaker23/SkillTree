@@ -66,7 +66,7 @@ var SkillTree = function(tree){
                     if (currPath != null){
                         currPath.setAttributeNS(null, "stroke", path); 
                         currPath = svg.removeChild(currPath);
-                        svg.prepend(currPath);
+                        svg.insertBefore(currPath, svg.childNodes[0]);
                     }
                 }
                 //Prevent unselected state from overriding dependency state colouring.
